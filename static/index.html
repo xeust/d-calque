@@ -13,62 +13,7 @@
     <script type="module">
         import { h, app } from "./hyper.js";
 
-        // effects
-
-        const attachCalq = (dispatch, options) => {
-            requestAnimationFrame(() => {
-                let input = document.getElementById('input');
-                if (localStorage.getItem("input")) {
-                    input.value = localStorage.getItem("input");
-                }
-
-                let output = document.getElementById('output');
-                window.calque = new Calque(input, output);
-                input.focus();
-                feather.replace();
-            });
-        };
-
-        //actions
-
-        const SaveCalculation = (state, val) => {
-            return {
-                ...state,
-                calc: val
-            };
-        };
-
-        // views
-
-        const SidebarElem = props => h("div", { class: "sidebar-elem" }, [
-            h("div", {}, props.name),
-            h("i", { "data-feather": "edit-2" }),
-            h("i", { "data-feather": "trash-2" }),
-        ]);
-
-        const Sidebar = state => {
-            const books = Object.keys(state.notebooks);
-            console.log(books);
-            return h("aside", {}, [
-                h("a", { class: "add" }, "+"),
-                h("div", { class: "sidebar" }, [
-                    books.map(notebook =>
-                        SidebarElem(state.notebooks[notebook])
-                    )
-                ])
-            ])
-        }
-
-        const initState = {
-            search: "",
-            notebooks: {
-                first: {
-                    name: "first",
-                    content: "",
-                }
-            },
-            active: "default",
-            calc: `# Calque - reactive calculator
+        const defaultContent = `# Calque - reactive calculator
 # Expressions
 2 + 2 * 2
 sqrt(3^2 + 4^2)
@@ -108,19 +53,120 @@ last + 1
 # https://github.com/grimalschi/calque
 
 # Using Math.js:
-# https://github.com/grimalschi/mathjs`
+# https://github.com/grimalschi/mathjs
+`
+        // effects
+
+        const renderIcons = (dispatch, options) => {
+            requestAnimationFrame(() => {
+                feather.replace();
+            });
+        }
+
+        const attachCalq = (dispatch, options) => {
+            requestAnimationFrame(() => {
+                let input = document.getElementById('input');
+                if (localStorage.getItem("input")) {
+                    input.value = localStorage.getItem("input");
+                }
+
+                let output = document.getElementById('output');
+                window.calque = new Calque(input, output);
+                input.focus();
+            });
+        };
+
+        //actions
+
+        const CreateNotebook = (state, newKey) => {
+            // key should come from base
+            const newName = `notebook ${Math.floor(Math.random() * 100) + 1}`;
+            return [{
+                ...state,
+                notebooks: {
+                    ...state.notebooks,
+                    [newKey]: {
+                        name: newName,
+                        content: defaultContent,
+                    }
+                },
+                active: newKey
+
+            }, [renderIcons]]
+        }
+
+        const SaveCalculation = (state, val) => {
+            return {
+                ...state,
+                notebooks: {
+                    ...state.notebooks,
+                    [state.active]: {
+                        ...state.notebooks[state.active],
+                        content: val
+                    }
+                }
+            };
+        };
+
+        const ActivateNotebook = (state, val) => {
+            return {
+                ...state,
+                active: val
+            }
+        }
+
+        // views
+
+        const SidebarElem = (state, props) => h("div", { class: "sidebar-elem" }, [
+            h("a", { class: props.active ? "title-active" : "title", onclick: () => ActivateNotebook(state, props.key) }, props.name),
+            h("div", { class: "sidebar-right" }, [
+                h("i", { "data-feather": "edit-2", class: "icon" }),
+                h("i", { "data-feather": "trash-2", class: "icon" }),
+            ])
+        ]);
+
+        const Sidebar = state => {
+            const books = Object.keys(state.notebooks);
+            return h("aside", {}, [
+                h("a", { class: "add", onclick: () => CreateNotebook(state, `${Math.floor(Math.random() * 100) + 1}`) }, "+"),
+                h("div", { class: "sidebar" }, [
+                    books.map(notebook => {
+                        let notebookProps = state.notebooks[notebook];
+                        notebookProps.key = notebook;
+                        notebookProps.active = state.active === notebook;
+                        return SidebarElem(state, notebookProps)
+                    })
+                ])
+            ])
+        }
+
+        const initState = {
+            search: "",
+            notebooks: {
+                first: {
+                    name: "first",
+                    content: defaultContent,
+                },
+                second: {
+                    name: "second",
+                    content: "",
+                }
+            },
+            active: "first",
         };
 
         app({
             init: [
                 initState,
+                [renderIcons],
                 [attachCalq, { state: initState }]
             ],
             view: state => {
+                console.log(state);
                 return h("div", { class: "container" }, [
                     h("div", { class: "interface" }, [
                         h("div", { class: "output", id: "output" }),
-                        h("textarea", { class: "input", id: "input", value: state.calc, oninput: [SaveCalculation, (event) => event.target.value] })
+                        h("textarea", { class: "input", id: "input", value: state.notebooks[state.active].content, oninput: [SaveCalculation, (event) => event.target.value] })
                     ]),
                     Sidebar(state),
                 ])
@@ -189,7 +235,7 @@ last + 1
 
     .add {
         position: relative;
-        color: #999;
+        color: #a7a7a7;
         padding: 18px 18px 4px 18px;
         font-weight: bold;
     }
@@ -209,6 +255,41 @@ last + 1
         display: flex;
         height: 30px;
         align-items: center;
+    }
+
+    .sidebar-right {
+        margin-left: auto;
+        display: flex;
+    }
+
+    .sidebar-elem:hover .icon {
+        display: inline-block;
+    }
+
+    .title {
+        font-weight: normal;
+        color: #a7a7a7;
+    }
+
+    .title:hover {
+        color: #000000;
+    }
+
+    .title-active {
+        color: #000000;
+        font-weight: bold;
+    }
+
+    .icon {
+        margin-left: 10px;
+        width: 18px;
+        height: 18px;
+        color: #a7a7a7;
+        display: none;
+    }
+
+    .icon:hover {
+        color: #000000;
     }
 </style>
 
