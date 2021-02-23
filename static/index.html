@@ -78,6 +78,26 @@ last + 1
 
         //actions
 
+        const DeleteNotebook = (state, delKey) => {
+            let newNotebooks = state.notebooks;
+            let nextActive = state.active;
+
+            if (Object.keys(newNotebooks).length > 1) {
+                // only delete if two or more
+                delete newNotebooks[delKey];
+                if (state.active === delKey) {
+                    nextActive = Object.keys(newNotebooks)[0];
+                }
+            }
+            return {
+                ...state,
+                notebooks: {
+                    ...newNotebooks
+                },
+                active: nextActive
+            }
+        }
+
         const CreateNotebook = (state, newKey) => {
             // key should come from base
             const newName = `notebook ${Math.floor(Math.random() * 100) + 1}`;
@@ -120,8 +140,12 @@ last + 1
         const SidebarElem = (state, props) => h("div", { class: "sidebar-elem" }, [
             h("a", { class: props.active ? "title-active" : "title", onclick: () => ActivateNotebook(state, props.key) }, props.name),
             h("div", { class: "sidebar-right" }, [
-                h("i", { "data-feather": "edit-2", class: "icon" }),
-                h("i", { "data-feather": "trash-2", class: "icon" }),
+                h("a", { class: "icon-wrap" }, [
+                    h("i", { "data-feather": "edit-2", class: "icon" })
+                ]),
+                h("a", { class: "icon-wrap", onclick: () => DeleteNotebook(state, props.key) }, [
+                    h("i", { "data-feather": "trash-2", class: "icon" })
+                ]),
             ])
         ]);
 
@@ -162,7 +186,6 @@ last + 1
                 [attachCalq, { state: initState }]
             ],
             view: state => {
-                console.log(state);
                 return h("div", { class: "container" }, [
                     h("div", { class: "interface" }, [
                         h("div", { class: "output", id: "output" }),
@@ -262,7 +285,7 @@ last + 1
         display: flex;
     }
 
-    .sidebar-elem:hover .icon {
+    .sidebar-elem:hover .icon-wrap {
         display: inline-block;
     }
 
@@ -280,16 +303,22 @@ last + 1
         font-weight: bold;
     }
 
-    .icon {
-        margin-left: 10px;
+    .icon-wrap {
+        display: flex;
         width: 18px;
         height: 18px;
+        margin-left: 10px;
         color: #a7a7a7;
         display: none;
     }
 
-    .icon:hover {
+    .icon-wrap:hover {
         color: #000000;
+    }
+
+    .icon {
+        width: 100%;
+        height: 100%;
     }
 </style>
 
