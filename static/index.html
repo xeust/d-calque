@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="style.css">
     <script src="math.min.js"></script>
     <script src="calque.js"></script>
+    <script src="deta.js"></script>
     <script src="feather.js"></script>
     <script type="module">
         import { h, app } from "./hyper.js";
@@ -55,10 +56,63 @@ last + 1
 # Using Math.js:
 # https://github.com/grimalschi/mathjs
 `
-        // effects
 
-        const focusFx = id => document.getElementById(id).focus()
-        const focus = id => [focusFx, id]
+        // db init
+        const nbDB = Deta().Base("notebooks");
+
+        // effects
+        // db fx
+
+        const createNbRecord = async (dispatch, options) => {
+            const name = `new nb ${Math.floor(Math.random() * 1000) + 1}`;
+            const resp = await nbDB.put({ name, content: defaultContent });
+            dispatch(options.CreateNotebook(options.state, resp || {}));
+        }
+
+        const deleteNbRecord = async (dispatch, options) => {
+            const resp = await nbDB.delete(options.key);
+            return resp;
+        }
+
+        const updateNbRecord = async (dispatch, options) => {
+            const resp = await nbDB.put(options.record);
+            return resp || {};
+        }
+
+        const loadNbRecords = async (dispatch, options) => {
+            const { value: data } = await nbDB.fetch([]).next();
+            if (data.length === 0) {
+                // no notebooks
+                dispatch(options.CreateWrapper(options.state))
+            } else {
+                dispatch(options.ImportNotebooks(options.state, data || []))
+            }
+            return;
+        }
+
+        // debounce fx
+        var debounceTimeouts = [];
+        function debounceEffect(dispatch, props) {
+            var timeout = debounceTimeouts.find(function (nextTimeout) {
+                return nextTimeout[0] === props.action
+            });
+            if (!timeout) {
+                timeout = [props.action];
+                debounceTimeouts.push(timeout);
+            } else {
+                clearTimeout(timeout[1]);
+            }
+
+            timeout[1] = setTimeout(function () {
+                dispatch(props.action);
+            }, props.wait);
+        }
+
+        function Debounce(props) {
+            return [debounceEffect, props];
+        }
+
+        // other fx
 
         const renderIcons = (dispatch, options) => {
             requestAnimationFrame(() => {
@@ -69,10 +123,6 @@ last + 1
         const attachCalq = (dispatch, options) => {
             requestAnimationFrame(() => {
                 let input = document.getElementById('input');
-                if (localStorage.getItem("input")) {
-                    input.value = localStorage.getItem("input");
-                }
-
                 let output = document.getElementById('output');
                 window.calque = new Calque(input, output);
                 input.focus();
@@ -99,24 +149,42 @@ last + 1
                 },
                 active: nextActive,
                 search: Object.keys(state.notebooks).length < 10 ? "" : state.search
-            }, [renderIcons]]
+            },
+            [renderIcons]
+            [deleteNbRecord, { key: delKey }]]
         }
 
-        const CreateNotebook = (state, newKey) => {
+        const CreateNotebook = (state, nbRecord) => {
             // key should come from base
-            const newName = `notebook ${Math.floor(Math.random() * 100) + 1}`;
+            const newKey = nbRecord.key;
+            const newNotebooks = { ...state.notebooks };
+            if (newKey) {
+                newNotebooks[newKey] = nbRecord;
+            }
             return [{
                 ...state,
                 notebooks: {
-                    ...state.notebooks,
-                    [newKey]: {
-                        name: newName,
-                        content: defaultContent,
-                    }
+                    ...newNotebooks
                 },
                 active: newKey
 
             }, [renderIcons]]
+        }
+
+        const CreateWrapper = state => {
+            return [
+                { ...state },
+                [renderIcons],
+                [createNbRecord, { state, CreateNotebook }]
+            ]
+        }
+
+        const DebouncedSave = (state) => {
+            return [{
+                ...state,
+            },
+            [renderIcons],
+            [updateNbRecord, { record: state.notebooks[state.active] }]]
         }
 
         const SaveCalculation = (state, val) => {
@@ -129,7 +197,9 @@ last + 1
                         content: val
                     }
                 }
-            }, [renderIcons]];
+            },
+            [renderIcons],
+            [Debounce({ wait: 500, action: DebouncedSave })]]
         };
 
         const ActivateNotebook = (state, val) => {
@@ -142,6 +212,7 @@ last + 1
         const ModifyName = (state, key = null) => {
             return [{
                 ...state,
+                active: key ? key : state.active,
                 editingName: key ? key : null
             }, [renderIcons]]
         }
@@ -156,8 +227,26 @@ last + 1
                         name: payload.value
                     }
                 }
-            }, [renderIcons]];
+            },
+            [renderIcons],
+            [Debounce({ wait: 500, action: DebouncedSave })]];
         }
+
+        const ImportNotebooks = (state, nbs = []) => {
+            const loadedNbs = {};
+            for (const book of nbs) {
+                loadedNbs[book.key] = book;
+            }
+            const nextState = {
+                ...state,
+                notebooks: loadedNbs,
+                active: nbs[0].key
+            };
+            return [
+                nextState,
+                [renderIcons],
+                [attachCalq, { state: nextState }]]
+        };
 
         const Search = (state, value = null) => {
             return [{
@@ -210,7 +299,7 @@ last + 1
                 return SidebarElem(state, notebookProps)
             }
             return h("aside", {}, [
-                h("a", { class: "add", onclick: () => CreateNotebook(state, `${Math.floor(Math.random() * 100) + 1}`) }, "+"),
+                h("a", { class: "add", onclick: () => CreateWrapper(state) }, "+"),
                 h("div", { class: "sidebar" }, [
                     books.length >= 10 ? h("div", { class: "search-wrap" }, [
                         h("input", { class: "search", oninput: [Search, (event) => (event.target.value)], placeholder: "Search", value: state.search })
@@ -222,18 +311,8 @@ last + 1
 
         const initState = {
             search: "",
-            notebooks: {
-                first: {
-                    name: "first",
-                    content: defaultContent,
-                    isEditingName: false,
-                },
-                second: {
-                    name: "second",
-                    content: "",
-                }
-            },
-            active: "first",
+            notebooks: {},
+            active: "",
             editingName: null,
             search: "",
         };
@@ -242,13 +321,15 @@ last + 1
             init: [
                 initState,
                 [renderIcons],
-                [attachCalq, { state: initState }]
+                [loadNbRecords, { state: initState, ImportNotebooks, CreateWrapper }],
             ],
             view: state => {
+                const activeNb = state.notebooks[state.active];
+                const calcContent = activeNb ? activeNb.content : "loading...";
                 return h("div", { class: "container" }, [
                     h("div", { class: "interface" }, [
                         h("div", { class: "output", id: "output" }),
-                        h("textarea", { class: "input", id: "input", value: state.notebooks[state.active].content, oninput: [SaveCalculation, (event) => event.target.value] })
+                        h("textarea", { class: "input", id: "input", value: calcContent, oninput: [SaveCalculation, (event) => event.target.value] })
                     ]),
                     Sidebar(state),
                 ])
@@ -261,158 +342,5 @@ last + 1
 <body>
     <div id="app"></div>
 </body>
-
-<style>
-    body {
-        font-family: 'Menlo', 'Monaco', courier, monospace;
-    }
-
-
-    .interface {
-        max-width: 768px;
-        margin: 0 auto;
-    }
-
-    aside>.scrollbox {
-        width: 100%;
-        margin: 0;
-    }
-
-    aside {
-        position: fixed;
-        font-family: 'Menlo', 'Monaco', courier, monospace;
-        width: 16%;
-        min-width: 135px;
-        height: 100%;
-        padding-right: 5px;
-        /* If the sidebar has a scrollbar, there should be some space */
-        opacity: 0;
-        overflow: auto;
-        -moz-user-select: none;
-        -webkit-user-select: none;
-        -ms-user-select: none;
-        /* prevent grey flash when clicking */
-        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-        box-sizing: border-box;
-        -moz-box-sizing: border-box;
-        -webkit-box-sizing: border-box;
-        -ms-box-sizing: border-box;
-        transition: opacity 0.4s;
-        -webkit-transition: opacity 0.4s;
-        -moz-transition: opacity 0.4s;
-        -o-transition: opacity 0.4s;
-        -ms-transition: opacity 0.4s;
-    }
-
-    aside:hover,
-    aside:focus,
-    .show-aside aside {
-        opacity: 1;
-    }
-
-    aside a,
-    .add {
-        display: block;
-        cursor: pointer;
-        outline: none;
-        color: #444;
-        text-decoration: none;
-        white-space: nowrap;
-        overflow: hidden;
-    }
-
-    .add {
-        position: relative;
-        color: #a7a7a7;
-        padding: 18px 18px 4px 18px;
-        margin-bottom: 18px;
-        font-weight: bold;
-    }
-
-    .add:hover,
-    .add:focus {
-        color: #000;
-    }
-
-
-    .sidebar {
-        display: flex;
-        flex-direction: column;
-        padding: 4px 18px 4px 18px;
-    }
-
-    .sidebar-elem {
-        display: flex;
-        height: 30px;
-        align-items: center;
-    }
-
-    .sidebar-right {
-        margin-left: auto;
-        display: flex;
-    }
-
-    .sidebar-elem:hover .icon-wrap {
-        display: inline-block;
-    }
-
-    .search-wrap {
-        display: flex;
-        height: 30px;
-        align-items: center;
-        margin-bottom: 18px;
-    }
-
-    .title {
-        font-weight: normal;
-        color: #a7a7a7;
-    }
-
-    .title:hover {
-        color: #000000;
-    }
-
-    .title-active {
-        color: #000000;
-        font-weight: bold;
-    }
-
-    .icon-wrap {
-        display: flex;
-        width: 18px;
-        height: 18px;
-        margin-left: 10px;
-        color: #a7a7a7;
-        display: none;
-    }
-
-    .icon-wrap:hover {
-        color: #000000;
-    }
-
-    .icon {
-        width: 100%;
-        height: 100%;
-    }
-
-    input {
-        outline: 0;
-        font-family: 'Menlo', 'Monaco', courier, monospace;
-        font-size: 16px;
-        border-width: 0 0 1px;
-        border-color: #a7a7a7;
-        max-width: calc(100% - 58px);
-        margin: 0 0 0 0;
-    }
-
-    input:focus,
-    input:focus::-webkit-input-placeholder {
-        border-color: #000000;
-    }
-
-    .search {
-        border-color: #000000 !important;
-    }
-</style>
 
 </html>

@@ -33,7 +33,7 @@
 
         calque.inputEl.onkeydown = function (event) {
             if (event.key === 'Enter') {
-                var line = calque.lines.filter(line =>  line.selected).pop();
+                var line = calque.lines.filter(line => line.selected).pop();
 
                 var insert = '\n';
                 if (line.summing) insert += '  ';
@@ -99,8 +99,6 @@
             calque.recalc();
             calque.readSelection();
             calque.repaint();
-
-            localStorage.setItem("input", calque.raw);
         }
     };
 
@@ -245,7 +243,7 @@
             calque.inputEl.setSelectionRange(line.positionEnd, line.positionEnd);
             calque.replaceSelection('\n' + line.code);
             calque.inputEl.setSelectionRange(calque.selectionStart, calque.selectionStart);
-         } else {
+        } else {
             var selection = calque.selection;
 
             calque.inputEl.setSelectionRange(calque.selectionEnd, calque.selectionEnd);

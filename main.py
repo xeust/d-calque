@@ -16,7 +16,7 @@ class CustomStatic(StaticFiles):
             self.config_checked = True
         path = self.get_path(scope)
         response = await self.get_response(path, scope)
-        response.set_cookie("pk", os.getenv("DETA_PROJECT_KEY"))
+        response.set_cookie("__dpk", os.getenv("DETA_PROJECT_KEY"))
         await response(scope, receive, send)
     
 routes = [
