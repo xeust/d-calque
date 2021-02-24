@@ -97,8 +97,7 @@ last + 1
                 notebooks: {
                     ...newNotebooks
                 },
-                active: nextActive,
-                search: Object.keys(state.notebooks).length < 10 ? "" : state.search
+                active: nextActive
             }
         }
 
@@ -159,14 +158,17 @@ last + 1
             }
         }
 
-        const Search = (state, value = null) => {
-            return [{
-                ...state,
-                search: value,
-            }, [renderIcons]]
-        };
-
         // views
+
+        const EditModal = (state, props) => h("a", { class: "icon-wrap", onclick: () => ModifyName(state, props.key) }, [
+            h("i", { "data-feather": "edit-2", class: "icon" })
+        ]);
+
+        const SaveModal = (state) => {
+            return h("a", { class: "icon-wrap", onclick: () => ModifyName(state) }, [
+                h("i", { "data-feather": "save", class: "icon" })
+            ])
+        };
 
         const SidebarElem = (state, props) => {
             const isEditing = state.editingName === props.key;
@@ -175,9 +177,7 @@ last + 1
                     :
                     h("a", { class: props.active ? "title-active" : "title", onclick: () => ActivateNotebook(state, props.key) }, props.name),
                 h("div", { class: "sidebar-right" }, [
-                    h("a", { class: "icon-wrap", onclick: isEditing ? () => ModifyName(state) : () => ModifyName(state, props.key) }, [
-                        h("i", { "data-feather": "edit-2", class: "icon" })
-                    ]),
+                    isEditing ? SaveModal(state) : EditModal(state, props),
                     h("a", { class: "icon-wrap", onclick: () => DeleteNotebook(state, props.key) }, [
                         h("i", { "data-feather": "trash-2", class: "icon" })
                     ]),
@@ -186,28 +186,16 @@ last + 1
         };
 
         const Sidebar = state => {
-            let books = Object.keys(state.notebooks);
-            let filteredBooks = [];
-            const { search } = state;
-            const isSearch = search && search !== "";
-            if (isSearch) {
-                filteredBooks = books.filter(each =>
-                    state.notebooks[each].content.includes(search) || each.includes(search)
-                )
-            }
-            const bookMap = notebook => {
-                let notebookProps = state.notebooks[notebook];
-                notebookProps.key = notebook;
-                notebookProps.active = state.active === notebook;
-                return SidebarElem(state, notebookProps)
-            }
+            const books = Object.keys(state.notebooks);
             return h("aside", {}, [
                 h("a", { class: "add", onclick: () => CreateNotebook(state, `${Math.floor(Math.random() * 100) + 1}`) }, "+"),
                 h("div", { class: "sidebar" }, [
-                    books.length >= 10 ? h("div", { class: "sidebar-elem" }, [
-                        h("input", { class: "search", oninput: [Search, (event) => (event.target.value)], placeholder: "Search", value: state.search })
-                    ]) : null,
-                    filteredBooks.length > 0 || isSearch ? filteredBooks.map(bookMap) : books.map(bookMap)
+                    books.map(notebook => {
+                        let notebookProps = state.notebooks[notebook];
+                        notebookProps.key = notebook;
+                        notebookProps.active = state.active === notebook;
+                        return SidebarElem(state, notebookProps)
+                    })
                 ])
             ])
         }
@@ -227,7 +215,6 @@ last + 1
             },
             active: "first",
             editingName: null,
-            search: "",
         };
 
         app({
@@ -255,11 +242,6 @@ last + 1
 </body>
 
 <style>
-    body {
-        font-family: 'Menlo', 'Monaco', courier, monospace;
-    }
-
-
     .interface {
         max-width: 768px;
         margin: 0 auto;
@@ -272,7 +254,6 @@ last + 1
 
     aside {
         position: fixed;
-        font-family: 'Menlo', 'Monaco', courier, monospace;
         width: 16%;
         min-width: 135px;
         height: 100%;
@@ -325,11 +306,10 @@ last + 1
         color: #000;
     }
 
-
     .sidebar {
         display: flex;
         flex-direction: column;
-        padding: 4px 18px 4px 18px;
+        padding: 18px 18px 4px 18px;
     }
 
     .sidebar-elem {
@@ -381,10 +361,8 @@ last + 1
 
     input {
         outline: 0;
-        font-family: 'Menlo', 'Monaco', courier, monospace;
-        font-size: 16px;
         border-width: 0 0 1px;
-        border-color: #a7a7a7;
+        border-color: #a3a7a7;
         max-width: calc(100% - 58px);
         margin: 0 0 0 0;
     }
