@@ -92,14 +92,14 @@ last + 1
                     nextActive = Object.keys(newNotebooks)[0];
                 }
             }
-            return {
+            return [{
                 ...state,
                 notebooks: {
                     ...newNotebooks
                 },
                 active: nextActive,
                 search: Object.keys(state.notebooks).length < 10 ? "" : state.search
-            }
+            }, [renderIcons]]
         }
 
         const CreateNotebook = (state, newKey) => {
@@ -120,7 +120,7 @@ last + 1
         }
 
         const SaveCalculation = (state, val) => {
-            return {
+            return [{
                 ...state,
                 notebooks: {
                     ...state.notebooks,
@@ -129,14 +129,14 @@ last + 1
                         content: val
                     }
                 }
-            };
+            }, [renderIcons]];
         };
 
         const ActivateNotebook = (state, val) => {
-            return {
+            return [{
                 ...state,
                 active: val
-            }
+            }, [renderIcons]];
         }
 
         const ModifyName = (state, key = null) => {
@@ -147,7 +147,7 @@ last + 1
         }
 
         const ChangeNotebookName = (state, payload) => {
-            return {
+            return [{
                 ...state,
                 notebooks: {
                     ...state.notebooks,
@@ -156,7 +156,7 @@ last + 1
                         name: payload.value
                     }
                 }
-            }
+            }, [renderIcons]];
         }
 
         const Search = (state, value = null) => {
@@ -166,12 +166,20 @@ last + 1
             }, [renderIcons]]
         };
 
+        const ConditionalModify = (state, e) => {
+            const key = e.keyCode || e.which;
+            if (key === 13) {
+                return ModifyName(state);
+            }
+            return state;
+        }
+
         // views
 
         const SidebarElem = (state, props) => {
             const isEditing = state.editingName === props.key;
             return h("div", { class: "sidebar-elem" }, [
-                isEditing ? h("input", { oninput: [ChangeNotebookName, (event) => ({ value: event.target.value, key: props.key })], value: props.name })
+                isEditing ? h("input", { oninput: [ChangeNotebookName, (event) => ({ value: event.target.value, key: props.key })], onkeypress: [ConditionalModify, event => event], value: props.name })
                     :
                     h("a", { class: props.active ? "title-active" : "title", onclick: () => ActivateNotebook(state, props.key) }, props.name),
                 h("div", { class: "sidebar-right" }, [
@@ -204,7 +212,7 @@ last + 1
             return h("aside", {}, [
                 h("a", { class: "add", onclick: () => CreateNotebook(state, `${Math.floor(Math.random() * 100) + 1}`) }, "+"),
                 h("div", { class: "sidebar" }, [
-                    books.length >= 10 ? h("div", { class: "sidebar-elem" }, [
+                    books.length >= 10 ? h("div", { class: "search-wrap" }, [
                         h("input", { class: "search", oninput: [Search, (event) => (event.target.value)], placeholder: "Search", value: state.search })
                     ]) : null,
                     filteredBooks.length > 0 || isSearch ? filteredBooks.map(bookMap) : books.map(bookMap)
@@ -317,6 +325,7 @@ last + 1
         position: relative;
         color: #a7a7a7;
         padding: 18px 18px 4px 18px;
+        margin-bottom: 18px;
         font-weight: bold;
     }
 
@@ -345,6 +354,13 @@ last + 1
 
     .sidebar-elem:hover .icon-wrap {
         display: inline-block;
+    }
+
+    .search-wrap {
+        display: flex;
+        height: 30px;
+        align-items: center;
+        margin-bottom: 18px;
     }
 
     .title {
@@ -392,6 +408,10 @@ last + 1
     input:focus,
     input:focus::-webkit-input-placeholder {
         border-color: #000000;
+    }
+
+    .search {
+        border-color: #000000 !important;
     }
 </style>
 
