@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Calque</title>
+    <title>D Calque</title>
     <link rel="icon" type='image/png' href="favicon.png">
     <link rel="stylesheet" href="style.css">
     <script src="math.min.js"></script>
@@ -14,48 +14,7 @@
     <script type="module">
         import { h, app } from "./hyper.js";
 
-        const defaultContent = `# Calque - reactive calculator
-# Expressions
-2 + 2 * 2
-sqrt(3^2 + 4^2)
-2 inch to cm
-cos(45 deg)
-
-# Variables
-a = 25
-b = a * 2
-postal code = 1122
-
-# Summing lists
-animals:
-cats = 2
-dogs = 3
-plants:
-trees = 20
-vegetables:
-    potatoes = 10
-    carrots = 10
-
-# Functions
-pow2(x) = x ^ 2
-pow2(6)
-
-# Last result
-2 * 2
-last + 1
-
-# Keys
-# Duplicate line or selection: Ctrl+D
-# Change selected number: Up/Down
-# Change selected number 10x: Shift+Up/Down
-# Change indent: Tab/Shift+Tab
-
-# Calque on GitHub:
-# https://github.com/grimalschi/calque
-
-# Using Math.js:
-# https://github.com/grimalschi/mathjs
-`
+        const defaultContent = `# Calque - reactive calculator`;
 
         // db init
         const nbDB = Deta().Base("notebooks");
@@ -150,7 +109,7 @@ last + 1
                 active: nextActive,
                 search: Object.keys(state.notebooks).length < 10 ? "" : state.search
             },
-            [renderIcons]
+            [renderIcons],
             [deleteNbRecord, { key: delKey }]]
         }
 
@@ -199,7 +158,7 @@ last + 1
                 }
             },
             [renderIcons],
-            [Debounce({ wait: 500, action: DebouncedSave })]]
+            [Debounce({ wait: 2000, action: DebouncedSave })]]
         };
 
         const ActivateNotebook = (state, val) => {
@@ -229,7 +188,7 @@ last + 1
                 }
             },
             [renderIcons],
-            [Debounce({ wait: 500, action: DebouncedSave })]];
+            [Debounce({ wait: 300, action: DebouncedSave })]];
         }
 
         const ImportNotebooks = (state, nbs = []) => {
