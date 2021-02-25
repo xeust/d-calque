@@ -4,12 +4,6 @@ body {
     font-family: 'Menlo', 'Monaco', courier, monospace;
 }
 
-
-.interface {
-    max-width: 908px;
-    margin: 0 auto;
-}
-
 aside>.scrollbox {
     width: 100%;
     margin: 0;
@@ -22,8 +16,9 @@ aside {
     min-width: 135px;
     height: 100%;
     padding-right: 5px;
+    background-color: #f9f9f9;
     /* If the sidebar has a scrollbar, there should be some space */
-    opacity: 0;
+    opacity: 1;
     overflow: auto;
     -moz-user-select: none;
     -webkit-user-select: none;
@@ -138,6 +133,7 @@ input {
     font-size: 16px;
     border-width: 0 0 1px;
     border-color: #a7a7a7;
+    background-color: #f9f9f9;
     max-width: calc(100% - 58px);
     margin: 0 0 0 0;
 }
@@ -149,10 +145,12 @@ input:focus::-webkit-input-placeholder {
 
 .search {
     border-color: #000000 !important;
+    background-color:#f9f9f9;
 }
 
 .interface {
     position: absolute;
+    margin-left: 18%;
     top: 0;
     right: 0;
     bottom: 0;
@@ -161,6 +159,7 @@ input:focus::-webkit-input-placeholder {
 }
 
 .interface .input, .interface .output {
+    background-color: #ffffff;
     position: absolute;
     top: 0;
     right: 0;

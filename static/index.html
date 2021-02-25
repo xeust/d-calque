@@ -14,21 +14,93 @@
     <script type="module">
         import { h, app } from "./hyper.js";
 
-        const defaultContent = `# Calque - reactive calculator`;
+        const defaultContent = `# Calque - reactive calculator
+   
+# Documentation: https://github.com/grimalschi/calque`;
+
+        const firstContent = `# Calque - reactive calculator
+
+# Expressions
+2 + 2 * 2
+sqrt(3^2 + 4^2 + 5^2 + 6^2 + 7^2 + 8^2)
+2 inch to cm
+cos(45 deg)
+
+# Variables
+
+## Hello this is a note
+a = 25
+b = a * 5
+postal code = 1122
+g(x) = 20*x
+h(x) = g(g(x))
+h(50)
+
+# Summing lists
+animals:
+  cats = 2
+  dogs = 3
+plants:
+  trees = 20
+  vegetables:
+    potatoes = 10
+    carrots = 10
+
+# Functions
+pow2(x) = x ^ 2
+pow2(g(6))
+
+# Last result
+2 * 2
+last + 1
+
+# Keys
+# Duplicate line or selection: Ctrl+D
+# Change selected number: Up/Down
+# Change selected number 10x: Shift+Up/Down
+# Change indent: Tab/Shift+Tab
+
+# Calque on GitHub:
+# https://github.com/grimalschi/calque
+
+# Using Math.js:
+# https://github.com/grimalschi/mathjs`;
 
         // db init
         const nbDB = Deta().Base("notebooks");
 
         // effects
+        // misc fx
+
+        const renderIcons = (dispatch, options) => {
+            requestAnimationFrame(() => {
+                feather.replace();
+            });
+        }
+
+        const attachCalq = (dispatch, options) => {
+            requestAnimationFrame(() => {
+                let input = document.getElementById('input');
+                let output = document.getElementById('output');
+                window.calque = new Calque(input, output);
+                input.focus();
+            });
+        };
+
         // db fx
 
         const createNbRecord = async (dispatch, options) => {
-            const name = `new nb ${Math.floor(Math.random() * 1000) + 1}`;
-            const resp = await nbDB.put({ name, content: defaultContent });
+            const name = options.first ? `notebook 1` : `notebook ${Object.keys(options.state.notebooks).length + 1}`;
+            const resp = await nbDB.put({ name, content: options.first ? firstContent : defaultContent });
             dispatch(options.CreateNotebook(options.state, resp || {}));
+            if (options.first) {
+                // case of no notebooks, need to load Calque engine correcly
+                attachCalq(dispatch, options)
+            }
         }
 
         const deleteNbRecord = async (dispatch, options) => {
+            if (!options.shouldDelete) return;
             const resp = await nbDB.delete(options.key);
             return resp;
         }
@@ -42,7 +114,7 @@
             const { value: data } = await nbDB.fetch([]).next();
             if (data.length === 0) {
                 // no notebooks
-                dispatch(options.CreateWrapper(options.state))
+                dispatch(options.CreateWrapper(options.state, true))
             } else {
                 dispatch(options.ImportNotebooks(options.state, data || []))
             }
@@ -71,31 +143,16 @@
             return [debounceEffect, props];
         }
 
-        // other fx
-
-        const renderIcons = (dispatch, options) => {
-            requestAnimationFrame(() => {
-                feather.replace();
-            });
-        }
-
-        const attachCalq = (dispatch, options) => {
-            requestAnimationFrame(() => {
-                let input = document.getElementById('input');
-                let output = document.getElementById('output');
-                window.calque = new Calque(input, output);
-                input.focus();
-            });
-        };
-
         //actions
 
         const DeleteNotebook = (state, delKey) => {
             let newNotebooks = state.notebooks;
             let nextActive = state.active;
+            let shouldDelete = false;
 
             if (Object.keys(newNotebooks).length > 1) {
                 // only delete if two or more notebooks
+                shouldDelete = true;
                 delete newNotebooks[delKey];
                 if (state.active === delKey) {
                     nextActive = Object.keys(newNotebooks)[0];
@@ -110,7 +167,7 @@
                 search: Object.keys(state.notebooks).length < 10 ? "" : state.search
             },
             [renderIcons],
-            [deleteNbRecord, { key: delKey }]]
+            [deleteNbRecord, { key: delKey, shouldDelete }]]
         }
 
         const CreateNotebook = (state, nbRecord) => {
@@ -130,11 +187,11 @@
             }, [renderIcons]]
         }
 
-        const CreateWrapper = state => {
+        const CreateWrapper = (state, first = false) => {
             return [
                 { ...state },
                 [renderIcons],
-                [createNbRecord, { state, CreateNotebook }]
+                [createNbRecord, { state, CreateNotebook, first }]
             ]
         }
 
@@ -286,7 +343,7 @@
                 const activeNb = state.notebooks[state.active];
                 const calcContent = activeNb ? activeNb.content : "loading...";
                 return h("div", { class: "container" }, [
-                    h("div", { class: "interface" }, [
+                    h("div", { class: "interface", id: "calq-wrap" }, [
                         h("div", { class: "output", id: "output" }),
                         h("textarea", { class: "input", id: "input", value: calcContent, oninput: [SaveCalculation, (event) => event.target.value] })
                     ]),
