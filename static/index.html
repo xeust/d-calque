@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>D Calque</title>
+    <link rel="icon" type='image/png' href="favicon.png">
+    <link rel="stylesheet" href="style.css">
+    <script src="math.min.js"></script>
+    <script src="calque.js"></script>
+    <script src="deta.js"></script>
+    <script src="feather.js"></script>
+    <script type="module">
+        import { h, app } from "./hyper.js";
+
+        const defaultContent = `# Calque - reactive calculator
+   
+# Documentation: https://github.com/grimalschi/calque`;
+
+        const firstContent = `# Calque - reactive calculator
+
+# Expressions
+2 + 2 * 2
+sqrt(3^2 + 4^2 + 5^2 + 6^2 + 7^2 + 8^2)
+2 inch to cm
+cos(45 deg)
+
+# Variables
+
+a = 25
+b = a * 5
+postal code = 1122
+
+# Summing lists
+animals:
+  cats = 2
+  dogs = 3
+plants:
+  trees = 20
+  vegetables:
+    potatoes = 10
+    carrots = 10
+
+# Functions
+pow2(x) = x ^ 2
+g(x) = x * 2
+pow2(g(4))
+
+# Last result
+2 * 2
+last + 1
+
+# Keys
+# Duplicate line or selection: Ctrl+D
+# Change selected number: Up/Down
+# Change selected number 10x: Shift+Up/Down
+# Change indent: Tab/Shift+Tab
+
+# Calque on GitHub:
+# https://github.com/grimalschi/calque
+
+# Using Math.js:
+# https://github.com/grimalschi/mathjs`;
+
+        // db init
+        const nbDB = Deta().Base("notebooks");
+
+        // effects
+        // misc fx
+
+        const renderIcons = (dispatch, options) => {
+            requestAnimationFrame(() => {
+                feather.replace();
+            });
+        }
+
+        const attachCalq = (dispatch, options) => {
+            requestAnimationFrame(() => {
+                let input = document.getElementById('input');
+                let output = document.getElementById('output');
+                window.calque = new Calque(input, output);
+                input.focus();
+            });
+        };
+
+        // db fx
+
+        const createNbRecord = async (dispatch, options) => {
+            const name = options.first ? `docs` : `notebook ${Object.keys(options.state.notebooks).length + 1}`;
+            const resp = await nbDB.put({ name, content: options.first ? firstContent : defaultContent });
+            dispatch(options.CreateNotebook(options.state, resp || {}));
+            if (options.first) {
+                // case of no notebooks, need to load Calque engine correcly
+                attachCalq(dispatch, options)
+            }
+        }
+
+        const deleteNbRecord = async (dispatch, options) => {
+            if (!options.shouldDelete) return;
+            const resp = await nbDB.delete(options.key);
+            return resp;
+        }
+
+        const updateNbRecord = async (dispatch, options) => {
+            const resp = await nbDB.put(options.record);
+            return resp || {};
+        }
+
+        const loadNbRecords = async (dispatch, options) => {
+            const { value: data } = await nbDB.fetch([]).next();
+            if (data.length === 0) {
+                // no notebooks
+                dispatch(options.CreateWrapper(options.state, true))
+            } else {
+                dispatch(options.ImportNotebooks(options.state, data || []))
+            }
+            return;
+        }
+
+        // debounce fx
+        var debounceTimeouts = [];
+        function debounceEffect(dispatch, props) {
+            var timeout = debounceTimeouts.find(function (nextTimeout) {
+                return nextTimeout[0] === props.action
+            });
+            if (!timeout) {
+                timeout = [props.action];
+                debounceTimeouts.push(timeout);
+            } else {
+                clearTimeout(timeout[1]);
+            }
+
+            timeout[1] = setTimeout(function () {
+                dispatch(props.action);
+            }, props.wait);
+        }
+
+        function Debounce(props) {
+            return [debounceEffect, props];
+        }
+
+        //actions
+
+        const DeleteNotebook = (state, delKey) => {
+            let newNotebooks = state.notebooks;
+            let nextActive = state.active;
+            let shouldDelete = false;
+
+            if (Object.keys(newNotebooks).length > 1) {
+                // only delete if two or more notebooks
+                shouldDelete = true;
+                delete newNotebooks[delKey];
+                if (state.active === delKey) {
+                    nextActive = Object.keys(newNotebooks)[0];
+                }
+            }
+            return [{
+                ...state,
+                notebooks: {
+                    ...newNotebooks
+                },
+                active: nextActive,
+                search: Object.keys(state.notebooks).length < 10 ? "" : state.search
+            },
+            [renderIcons],
+            [deleteNbRecord, { key: delKey, shouldDelete }]]
+        }
+
+        const CreateNotebook = (state, nbRecord) => {
+            // key should come from base
+            const newKey = nbRecord.key;
+            const newNotebooks = { ...state.notebooks };
+            if (newKey) {
+                newNotebooks[newKey] = nbRecord;
+            }
+            return [{
+                ...state,
+                notebooks: {
+                    ...newNotebooks
+                },
+                active: newKey
+
+            }, [renderIcons]]
+        }
+
+        const CreateWrapper = (state, first = false) => {
+            return [
+                { ...state },
+                [renderIcons],
+                [createNbRecord, { state, CreateNotebook, first }]
+            ]
+        }
+
+        const DebouncedSave = (state) => {
+            return [{
+                ...state,
+            },
+            [renderIcons],
+            [updateNbRecord, { record: state.notebooks[state.active] }]]
+        }
+
+        const SaveCalculation = (state, val) => {
+            return [{
+                ...state,
+                notebooks: {
+                    ...state.notebooks,
+                    [state.active]: {
+                        ...state.notebooks[state.active],
+                        content: val
+                    }
+                }
+            },
+            [renderIcons],
+            [Debounce({ wait: 2000, action: DebouncedSave })]]
+        };
+
+        const ActivateNotebook = (state, val) => {
+            return [{
+                ...state,
+                active: val
+            }, [renderIcons]];
+        }
+
+        const ModifyName = (state, key = null) => {
+            return [{
+                ...state,
+                active: key ? key : state.active,
+                editingName: key ? key : null
+            }, [renderIcons]]
+        }
+
+        const ChangeNotebookName = (state, payload) => {
+            return [{
+                ...state,
+                notebooks: {
+                    ...state.notebooks,
+                    [payload.key]: {
+                        ...state.notebooks[payload.key],
+                        name: payload.value
+                    }
+                }
+            },
+            [renderIcons],
+            [Debounce({ wait: 300, action: DebouncedSave })]];
+        }
+
+        const ImportNotebooks = (state, nbs = []) => {
+            const loadedNbs = {};
+            for (const book of nbs) {
+                loadedNbs[book.key] = book;
+            }
+            const nextState = {
+                ...state,
+                notebooks: loadedNbs,
+                active: nbs[0].key
+            };
+            return [
+                nextState,
+                [renderIcons],
+                [attachCalq, { state: nextState }]]
+        };
+
+        const Search = (state, value = null) => {
+            return [{
+                ...state,
+                search: value,
+            }, [renderIcons]]
+        };
+
+        const ConditionalModify = (state, e) => {
+            const key = e.keyCode || e.which;
+            if (key === 13) {
+                return ModifyName(state);
+            }
+            return state;
+        }
+
+        // views
+
+        const SidebarElem = (state, props) => {
+            const isEditing = state.editingName === props.key;
+            return h("div", { class: "sidebar-elem" }, [
+                isEditing ? h("input", { oninput: [ChangeNotebookName, (event) => ({ value: event.target.value, key: props.key })], onkeypress: [ConditionalModify, event => event], value: props.name })
+                    :
+                    h("a", { class: props.active ? "title-active" : "title", onclick: () => ActivateNotebook(state, props.key) }, props.name),
+                h("div", { class: "sidebar-right" }, [
+                    h("a", { class: "icon-wrap", onclick: isEditing ? () => ModifyName(state) : () => ModifyName(state, props.key) }, [
+                        h("i", { "data-feather": "edit-2", class: "icon" })
+                    ]),
+                    h("a", { class: "icon-wrap", onclick: () => DeleteNotebook(state, props.key) }, [
+                        h("i", { "data-feather": "trash-2", class: "icon" })
+                    ]),
+                ])
+            ])
+        };
+
+        const Sidebar = state => {
+            let books = Object.keys(state.notebooks);
+            let filteredBooks = [];
+            const { search } = state;
+            const isSearch = search && search !== "";
+            if (isSearch) {
+                filteredBooks = books.filter(each =>
+                    state.notebooks[each].content.includes(search) || each.includes(search)
+                )
+            }
+            const bookMap = notebook => {
+                let notebookProps = state.notebooks[notebook];
+                notebookProps.key = notebook;
+                notebookProps.active = state.active === notebook;
+                return SidebarElem(state, notebookProps)
+            }
+            return h("aside", {}, [
+                h("a", { class: "add", onclick: () => CreateWrapper(state) }, "+"),
+                h("div", { class: "sidebar" }, [
+                    books.length >= 10 ? h("div", { class: "search-wrap" }, [
+                        h("input", { class: "search", oninput: [Search, (event) => (event.target.value)], placeholder: "Search", value: state.search })
+                    ]) : null,
+                    filteredBooks.length > 0 || isSearch ? filteredBooks.map(bookMap) : books.map(bookMap)
+                ])
+            ])
+        }
+
+        const initState = {
+            search: "",
+            notebooks: {},
+            active: "",
+            editingName: null,
+            search: "",
+        };
+
+        app({
+            init: [
+                initState,
+                [renderIcons],
+                [loadNbRecords, { state: initState, ImportNotebooks, CreateWrapper }],
+            ],
+            view: state => {
+                const activeNb = state.notebooks[state.active];
+                const calcContent = activeNb ? activeNb.content : "loading...";
+                return h("div", { class: "container" }, [
+                    h("div", { class: "interface", id: "calq-wrap" }, [
+                        h("div", { class: "output", id: "output" }),
+                        h("textarea", { class: "input", id: "input", value: calcContent, oninput: [SaveCalculation, (event) => event.target.value] })
+                    ]),
+                    Sidebar(state),
+                ])
+            },
+            node: document.getElementById("app")
+        });
+    </script>
+</head>
+
+<body>
+    <div id="app"></div>
+</body>
+
+</html>
