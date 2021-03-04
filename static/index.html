@@ -28,13 +28,9 @@ cos(45 deg)
 
 # Variables
 
-## Hello this is a note
 a = 25
 b = a * 5
 postal code = 1122
-g(x) = 20*x
-h(x) = g(g(x))
-h(50)
 
 # Summing lists
 animals:
@@ -90,7 +86,7 @@ last + 1
         // db fx
 
         const createNbRecord = async (dispatch, options) => {
-            const name = options.first ? `notebook 1` : `notebook ${Object.keys(options.state.notebooks).length + 1}`;
+            const name = options.first ? `docs` : `notebook ${Object.keys(options.state.notebooks).length + 1}`;
             const resp = await nbDB.put({ name, content: options.first ? firstContent : defaultContent });
             dispatch(options.CreateNotebook(options.state, resp || {}));
             if (options.first) {
