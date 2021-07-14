@@ -7,12 +7,12 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <title>D Calque</title>
-    <link rel="icon" type="image/png" href="static/favicon.png" />
-    <link rel="stylesheet" href="static/style.css" />
-    <script src="static/math.min.js"></script>
-    <script src="static/calque.js"></script>
+    <link rel="icon" type="image/png" href="../static/favicon.png" />
+    <link rel="stylesheet" href="../static/style.css" />
+    <script src="../static/math.min.js"></script>
+    <script src="../static/calque.js"></script>
     <script src="https://unpkg.com/hyperapp-fx@next"></script>
-    <script src="static/feather.js"></script>
+    <script src="../static/feather.js"></script>
     <script type="module">
       import { h, text, app } from "https://unpkg.com/hyperapp";
 
@@ -124,10 +124,13 @@ last + 1
       };
 
       const loadNbRecords = async (dispatch, options) => {
-        const req = await fetch(`/list`, {
+        var parts = window.location.pathname.split('/');
+        var lastSegment = parts.pop() || parts.pop();
+        const req = await fetch(`/public/raw/${lastSegment}`, {
           method: "GET",
         });
         const data = await req.json();
+        console.log(data)
         if (data.length === 0) {
           // no notebooks
           dispatch(options.CreateWrapper(options.state, true));
@@ -334,112 +337,6 @@ last + 1
       };
 
       // views
-
-      const SidebarElem = (state, props) => {
-        const isEditing = state.editingName === props.key;
-        console.log(state.notebooks[props.key].public);
-    
-        const publicIcon = state.notebooks[props.key].public
-          ? h(
-              "a",
-              {
-                class: "icon-wrap",
-                onclick: () => TogglePublic(state, props.key,  false),
-              },
-              [h("i", { "data-feather": "unlock", class: "icon" })]
-            )
-          : h("div", {}, [
-              h(
-                "a",
-                {
-                  class: "icon-wrap",
-                  onclick: () => TogglePublic(state, props.key, true),
-                },
-                [h("i", { "data-feather": "lock", class: "icon" })]
-              ),
-            ]);
-        return h("div", { class: "sidebar-elem" }, [
-          isEditing
-            ? h("input", {
-                id: props.key,
-                oninput: ChangeNotebookName,
-                onkeypress: [ConditionalModify, (event) => event],
-                value: props.name,
-              })
-            : h(
-                "a",
-                {
-                  class: props.active ? "title-active" : "title",
-                  onclick: () => ActivateNotebook(state, props.key),
-                },
-                text(props.name)
-              ),
-          h("div", { class: "sidebar-right" }, [
-            h(
-              "a",
-              {
-                class: "icon-wrap",
-                onclick: isEditing
-                  ? () => ModifyName(state)
-                  : () => ModifyName(state, props.key),
-              },
-              [h("i", { "data-feather": "edit-2", class: "icon" })]
-            ),
-            h(
-              "a",
-              {
-                class: "icon-wrap",
-                onclick: () => DeleteNotebook(state, props.key),
-              },
-              [h("i", { "data-feather": "trash-2", class: "icon" })]
-            ),
-            publicIcon
-          ]),
-        ]);
-      };
-
-      const Sidebar = (state) => {
-        let books = Object.keys(state.notebooks);
-        let filteredBooks = [];
-        const { search } = state;
-        const isSearch = search && search !== "";
-        if (isSearch) {
-          filteredBooks = books.filter(
-            (each) =>
-              state.notebooks[each].content.includes(search) ||
-              each.includes(search)
-          );
-        }
-
-        const bookMap = (notebook) => {
-          let notebookProps = state.notebooks[notebook];
-          notebookProps.key = notebook;
-          notebookProps.active = state.active === notebook;
-          return SidebarElem(state, notebookProps);
-        };
-
-        return h("aside", {}, [
-          h(
-            "a",
-            { class: "add", onclick: () => CreateWrapper(state) },
-            text("+")
-          ),
-          h("div", { class: "sidebar" }, [
-            books.length >= 10
-              ? h("div", { class: "search-wrap" }, [
-                  h("input", {
-                    class: "search",
-                    oninput: Search,
-                    placeholder: "Search",
-                    value: state.search,
-                  }),
-                ])
-              : null,
-            ...books.map(bookMap),
-          ]),
-        ]);
-      };
-
       const initState = {
         search: "",
         notebooks: {},
@@ -464,11 +361,10 @@ last + 1
                 h("textarea", {
                   class: "input",
                   id: "input",
-                  oninput: SaveCalculation,
+                  disabled: true,
                   value,
                 }),
               ]),
-              Sidebar(state),
             ]),
           ]);
         },

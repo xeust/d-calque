@@ -5,3 +5,4 @@ Desktop.ini
 .idea/*
 node_modules/*
 .dir
+config.py
