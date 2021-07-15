@@ -185,6 +185,21 @@
                 [updateNbRecord, { record: newNotebooks[key] }],
               ];
             };
+
+            const CopyAlert = (state) => {
+              return [
+                {...state, embed: "embed"}
+              ]
+            }
+            const CopyEmbed = (state, publicUrl) => {
+              const embedContent = embedNotebook(publicUrl);
+              navigator.clipboard.writeText(embedContent);
+              return [
+                {...state,
+                embed: "copied!"},
+                window.hyperappFx.Debounce({ wait: 3000, action: CopyAlert }),
+              ]
+            }
             const DeleteNotebook = (state, delKey) => {
               let newNotebooks = state.notebooks;
               let nextActive = state.active;
@@ -276,6 +291,7 @@
                 [renderIcons],
               ];
             };
+
 
             const ModifyName = (state, key = null) => {
               return [
@@ -383,7 +399,7 @@
                 ]),
               ]);
             };
-            
+
             const Sidebar = (state) => {
               let books = Object.keys(state.notebooks);
               let filteredBooks = [];
@@ -442,23 +458,25 @@
                         onclick: () => TogglePublic(state, state.active, false),
                       },
                       [
-                        h("div", { class: "url-info" }, text("publish")),
+
                         h("i", {
                           "data-feather": "share",
                           class: "footer-icons blue",
                         }),
+                        h("div", { class: "url-info" }, text("public")),
                       ]
                     ),
                     h("a",  {
                       class: "embed",
-                      onclick: () => {navigator.clipboard.writeText(embedNotebook(publicUrl))},
+                      onclick: CopyEmbed(state, publicUrl),
 
                     }, [
-                    h("div", { class: "url-info" }, text("embed")),
+
                         h("i", {
                           "data-feather": "code",
-                          class: "footer-icons grey",
+                          class: "footer-icons ",
                         }),
+                        h("div", { class: "url-info", id:"embed" }, text(state.embed)),
                     ])
                   ])
                   : h("div", {class:"private"}, [
@@ -469,11 +487,12 @@
                           onclick: () => TogglePublic(state, state.active, true),
                         },
                         [
-                          h("div", { class: "url-info" }, text("publish")),
+
                           h("i", {
                             "data-feather": "share",
                             class: "footer-icons grey",
                           }),
+                          h("div", { class: "url-info" }, text("private")),
                         ]
                       ),
                     ]);
@@ -499,6 +518,7 @@
               active: "",
               editingName: null,
               search: "",
+              embed: "embed"
             };
 
             app({

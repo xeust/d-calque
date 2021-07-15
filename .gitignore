@@ -5,4 +5,6 @@ Desktop.ini
 .idea/*
 node_modules/*
 .dir
-config.py
+
+.deta/prog_info
+.deta/state

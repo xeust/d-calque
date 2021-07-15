@@ -282,7 +282,7 @@ input:focus::-webkit-input-placeholder {
   }
 
   .footer-icons {
-      margin-left: 10px;
+      margin-right: 10px;
       height: 18px;
       width: 18px;
   }
@@ -294,8 +294,12 @@ input:focus::-webkit-input-placeholder {
       display: flex;
   }
   .embed {
+    color: #a7a7a7;
       margin-left: 10px;
       display: flex;
+  }
+  .embed:hover {
+    color: #98b9f9;
   }
   .flex {
       display: flex;

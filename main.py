@@ -5,13 +5,12 @@ from pydantic import BaseModel
 from typing import Optional
 
 from deta import Deta
-from config import  PROJECT_KEY
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-deta = Deta(PROJECT_KEY)
+deta = Deta()
 db = deta.Base("notebooks")
 
 
