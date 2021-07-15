@@ -5,3 +5,6 @@ Desktop.ini
 .idea/*
 node_modules/*
 .dir
+
+.deta/prog_info
+.deta/state
