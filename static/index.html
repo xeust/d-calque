@@ -14,11 +14,11 @@
     <script src="https://unpkg.com/hyperapp-fx@next"></script>
     <script src="static/feather.js"></script>
     <script type="module">
-            import { h, text, app } from "https://unpkg.com/hyperapp";
+      import { h, text, app } from "https://unpkg.com/hyperapp";
 
-            const defaultContent = `# Calque - reactive calculator
+      const defaultContent = `# Calque - reactive calculator
               # Documentation: https://github.com/grimalschi/calque`;
-            const firstContent = `# Calque - reactive calculator
+      const firstContent = `# Calque - reactive calculator
       # Expressions
       2 + 2 * 2
       sqrt(3^2 + 4^2 + 5^2 + 6^2 + 7^2 + 8^2)
@@ -54,503 +54,502 @@
       # Using Math.js:
       # https://github.com/grimalschi/mathjs`;
 
-            const embedNotebook = (publicUrl) => {
-              return `<iframe style="width: 25vw; height: 25vh;" src="${publicUrl}" title="nice"></iframe>`
-            }
+      const embedNotebook = (publicUrl) => {
+        return `<iframe style="width: 25vw; height: 25vh;" src="${publicUrl}" title="nice"></iframe>`;
+      };
 
-            // effects
-            // misc fx
+      // effects
+      // misc fx
 
-            const renderIcons = (dispatch, options) => {
-              requestAnimationFrame(() => {
-                feather.replace();
-              });
-            };
-            const attachCalq = (dispatch, options) => {
-              requestAnimationFrame(() => {
-                let input = document.getElementById("input");
-                let output = document.getElementById("output");
-                window.calque = new Calque(input, output);
-                input.focus();
-              });
-            };
-            // db fx
+      const renderIcons = (dispatch, options) => {
+        requestAnimationFrame(() => {
+          feather.replace();
+        });
+      };
+      const attachCalq = (dispatch, options) => {
+        requestAnimationFrame(() => {
+          let input = document.getElementById("input");
+          let output = document.getElementById("output");
+          window.calque = new Calque(input, output);
+          input.focus();
+        });
+      };
+      // db fx
 
-            const createNbRecord = async (dispatch, options) => {
-              const name = options.first
-                ? `docs`
-                : `notebook ${Object.keys(options.state.notebooks).length + 1}`;
-              const record = {
-                name,
-                content: options.first ? firstContent : defaultContent,
-              };
-              const req = await fetch(`/create`, {
-                method: "POST",
-                header: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify(record),
-              });
-              if (req.status != 200) {
-                console.log("Failed to create a new record.");
-              }
-              const resp = await req.json();
-              dispatch(options.CreateNotebook(options.state, resp || {}));
-              if (options.first) {
-                // case of no notebooks, need to load Calque engine correcly
-                attachCalq(dispatch, options);
-              }
-            };
+      const createNbRecord = async (dispatch, options) => {
+        const name = options.first
+          ? `docs`
+          : `notebook ${Object.keys(options.state.notebooks).length + 1}`;
+        const record = {
+          name,
+          content: options.first ? firstContent : defaultContent,
+        };
+        const req = await fetch(`/create`, {
+          method: "POST",
+          header: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(record),
+        });
+        if (req.status != 200) {
+          console.log("Failed to create a new record.");
+        }
+        const resp = await req.json();
+        dispatch(options.CreateNotebook(options.state, resp || {}));
+        if (options.first) {
+          // case of no notebooks, need to load Calque engine correcly
+          attachCalq(dispatch, options);
+        }
+      };
 
-            const deleteNbRecord = async (dispatch, options) => {
-              if (!options.shouldDelete) return;
-              const res = await fetch(`/delete`, {
-                method: "DELETE",
-                header: {
-                  "Content-Type": "applicaton/json",
-                },
-                body: JSON.stringify({ key: options.key }),
-              });
+      const deleteNbRecord = async (dispatch, options) => {
+        if (!options.shouldDelete) return;
+        const res = await fetch(`/delete`, {
+          method: "DELETE",
+          header: {
+            "Content-Type": "applicaton/json",
+          },
+          body: JSON.stringify({ key: options.key }),
+        });
 
-              return await res.json();
-            };
+        return await res.json();
+      };
 
-            const updateNbRecord = async (dispatch, options) => {
-              const req = await fetch(`/update`, {
-                method: "PUT",
-                header: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify(options.record),
-              });
-              const resp = await req.json();
-              return resp || {};
-            };
+      const updateNbRecord = async (dispatch, options) => {
+        const req = await fetch(`/update`, {
+          method: "PUT",
+          header: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(options.record),
+        });
+        const resp = await req.json();
+        return resp || {};
+      };
 
-            const loadNbRecords = async (dispatch, options) => {
-              const req = await fetch(`/list`, {
-                method: "GET",
-              });
-              const data = await req.json();
-              if (data.length === 0) {
-                // no notebooks
-                dispatch(options.CreateWrapper(options.state, true));
-              } else {
-                dispatch(options.ImportNotebooks(options.state, data || []));
-              }
-              return;
-            };
+      const loadNbRecords = async (dispatch, options) => {
+        const req = await fetch(`/list`, {
+          method: "GET",
+        });
+        const data = await req.json();
+        if (data.length === 0) {
+          // no notebooks
+          dispatch(options.CreateWrapper(options.state, true));
+        } else {
+          dispatch(options.ImportNotebooks(options.state, data || []));
+        }
+        return;
+      };
 
-            // debounce fx
-            var debounceTimeouts = [];
-            function debounceEffect(dispatch, props) {
-              var timeout = debounceTimeouts.find(function (nextTimeout) {
-                return nextTimeout[0] === props.action;
-              });
-              if (!timeout) {
-                timeout = [props.action];
-                debounceTimeouts.push(timeout);
-              } else {
-                clearTimeout(timeout[1]);
-              }
+      // debounce fx
+      var debounceTimeouts = [];
+      function debounceEffect(dispatch, props) {
+        var timeout = debounceTimeouts.find(function (nextTimeout) {
+          return nextTimeout[0] === props.action;
+        });
+        if (!timeout) {
+          timeout = [props.action];
+          debounceTimeouts.push(timeout);
+        } else {
+          clearTimeout(timeout[1]);
+        }
 
-              timeout[1] = setTimeout(function () {
-                dispatch(props.action);
-              }, props.wait);
-            }
+        timeout[1] = setTimeout(function () {
+          dispatch(props.action);
+        }, props.wait);
+      }
 
-            function Debounce(props) {
-              return [debounceEffect, props];
-            }
-            //actions
+      function Debounce(props) {
+        return [debounceEffect, props];
+      }
+      //actions
 
-            const update = (state) => {
-              return [
-                state,
-                [updateNbRecord, { record: state.notebooks[state.active] }],
-              ];
-            };
+      const update = (state) => {
+        return [
+          state,
+          [updateNbRecord, { record: state.notebooks[state.active] }],
+        ];
+      };
 
-            const TogglePublic = (state, key, isPublic) => {
-              const newNotebooks = state.notebooks;
-              newNotebooks[key].public = isPublic;
-              return [
+      const TogglePublic = (state, key, isPublic) => {
+        const newNotebooks = state.notebooks;
+        newNotebooks[key].public = isPublic;
+        return [
+          {
+            ...state,
+            notebooks: {
+              ...newNotebooks,
+            },
+          },
+          [renderIcons],
+          [updateNbRecord, { record: newNotebooks[key] }],
+        ];
+      };
+
+      const CopyAlert = (state) => {
+        return [{ ...state, embed: "embed" }];
+      };
+      const CopyEmbed = (state, publicUrl) => {
+        const embedContent = embedNotebook(publicUrl);
+        navigator.clipboard.writeText(embedContent);
+        return [
+          { ...state, embed: "copied!" },
+          window.hyperappFx.Debounce({ wait: 3000, action: CopyAlert }),
+        ];
+      };
+      const DeleteNotebook = (state, delKey) => {
+        let newNotebooks = state.notebooks;
+        let nextActive = state.active;
+        let shouldDelete = false;
+
+        if (Object.keys(newNotebooks).length > 1) {
+          // only delete if two or more notebooks
+          shouldDelete = true;
+          delete newNotebooks[delKey];
+          if (state.active === delKey) {
+            nextActive = Object.keys(newNotebooks)[0];
+          }
+        }
+        return [
+          {
+            ...state,
+            notebooks: {
+              ...newNotebooks,
+            },
+            active: nextActive,
+            search:
+              Object.keys(state.notebooks).length < 10 ? "" : state.search,
+          },
+          [renderIcons],
+          [deleteNbRecord, { key: delKey, shouldDelete }],
+        ];
+      };
+
+      const CreateNotebook = (state, nbRecord) => {
+        // key should come from base
+        const newKey = nbRecord.key;
+        const newNotebooks = { ...state.notebooks };
+        if (newKey) {
+          newNotebooks[newKey] = nbRecord;
+        }
+        return [
+          {
+            ...state,
+            notebooks: {
+              ...newNotebooks,
+            },
+            active: newKey,
+          },
+          [renderIcons],
+        ];
+      };
+
+      const CreateWrapper = (state, first = false) => {
+        return [
+          { ...state },
+          [renderIcons],
+          [createNbRecord, { state, CreateNotebook, first }],
+        ];
+      };
+
+      const DebouncedSave = (state) => {
+        return [
+          {
+            ...state,
+          },
+          [renderIcons],
+          [updateNbRecord, { record: state.notebooks[state.active] }],
+        ];
+      };
+
+      const SaveCalculation = (state, event) => {
+        const newState = {
+          ...state,
+          notebooks: {
+            ...state.notebooks,
+            [state.active]: {
+              ...state.notebooks[state.active],
+              content: event.target.value,
+              active: true,
+            },
+          },
+        };
+        return [
+          newState,
+          window.hyperappFx.Debounce({ wait: 2000, action: update }),
+        ];
+      };
+      const ActivateNotebook = (state, val) => {
+        return [
+          {
+            ...state,
+            active: val,
+          },
+          [renderIcons],
+        ];
+      };
+
+      const ModifyName = (state, key = null) => {
+        return [
+          {
+            ...state,
+            active: key ? key : state.active,
+            editingName: key ? key : null,
+          },
+          [renderIcons],
+        ];
+      };
+
+      const ChangeNotebookName = (state, event) => {
+        const payload = { value: event.target.value, key: event.target.id };
+        console.log(payload);
+        const newState = {
+          ...state,
+          notebooks: {
+            ...state.notebooks,
+            [payload.key]: {
+              ...state.notebooks[payload.key],
+              name: payload.value,
+            },
+          },
+        };
+        return [
+          newState,
+          [renderIcons],
+          [updateNbRecord, { record: newState.notebooks[newState.active] }],
+        ];
+      };
+
+      const ImportNotebooks = (state, nbs = []) => {
+        const loadedNbs = {};
+        for (const book of nbs) {
+          loadedNbs[book.key] = book;
+        }
+        const nextState = {
+          ...state,
+          notebooks: loadedNbs,
+          active: nbs[0].key,
+        };
+        return [nextState, [renderIcons], [attachCalq, { state: nextState }]];
+      };
+
+      const Search = (state, event) => {
+        return [
+          {
+            ...state,
+            search: event.target.value,
+          },
+          [renderIcons],
+        ];
+      };
+
+      const ConditionalModify = (state, e) => {
+        const key = e.keyCode || e.which;
+        if (key === 13) {
+          return ModifyName(state);
+        }
+        return state;
+      };
+
+      // views
+
+      const SidebarElem = (state, props) => {
+        const isEditing = state.editingName === props.key;
+        console.log(state.notebooks[props.key].public);
+
+        return h("div", { class: "sidebar-elem" }, [
+          isEditing
+            ? h("input", {
+                id: props.key,
+                oninput: ChangeNotebookName,
+                onkeypress: [ConditionalModify, (event) => event],
+                value: props.name,
+              })
+            : h(
+                "a",
                 {
-                  ...state,
-                  notebooks: {
-                    ...newNotebooks,
-                  },
+                  class: props.active ? "title-active" : "title",
+                  onclick: () => ActivateNotebook(state, props.key),
                 },
-                [renderIcons],
-                [updateNbRecord, { record: newNotebooks[key] }],
-              ];
-            };
+                text(props.name)
+              ),
+          h("div", { class: "sidebar-right" }, [
+            h(
+              "a",
+              {
+                class: "icon-wrap",
+                onclick: isEditing
+                  ? () => ModifyName(state)
+                  : () => ModifyName(state, props.key),
+              },
+              [h("i", { "data-feather": "edit-2", class: "icon" })]
+            ),
+            h(
+              "a",
+              {
+                class: "icon-wrap",
+                onclick: () => DeleteNotebook(state, props.key),
+              },
+              [h("i", { "data-feather": "trash-2", class: "icon" })]
+            ),
+          ]),
+        ]);
+      };
 
-            const CopyAlert = (state) => {
-              return [
-                {...state, embed: "embed"}
-              ]
-            }
-            const CopyEmbed = (state, publicUrl) => {
-              const embedContent = embedNotebook(publicUrl);
-              navigator.clipboard.writeText(embedContent);
-              return [
-                {...state,
-                embed: "copied!"},
-                window.hyperappFx.Debounce({ wait: 3000, action: CopyAlert }),
-              ]
-            }
-            const DeleteNotebook = (state, delKey) => {
-              let newNotebooks = state.notebooks;
-              let nextActive = state.active;
-              let shouldDelete = false;
+      const Sidebar = (state) => {
+        let books = Object.keys(state.notebooks);
+        let filteredBooks = [];
+        const { search } = state;
+        const isSearch = search && search !== "";
+        if (isSearch) {
+          filteredBooks = books.filter(
+            (each) =>
+              state.notebooks[each].content.includes(search) ||
+              each.includes(search)
+          );
+        }
 
-              if (Object.keys(newNotebooks).length > 1) {
-                // only delete if two or more notebooks
-                shouldDelete = true;
-                delete newNotebooks[delKey];
-                if (state.active === delKey) {
-                  nextActive = Object.keys(newNotebooks)[0];
-                }
-              }
-              return [
-                {
-                  ...state,
-                  notebooks: {
-                    ...newNotebooks,
-                  },
-                  active: nextActive,
-                  search:
-                    Object.keys(state.notebooks).length < 10 ? "" : state.search,
-                },
-                [renderIcons],
-                [deleteNbRecord, { key: delKey, shouldDelete }],
-              ];
-            };
+        const bookMap = (notebook) => {
+          let notebookProps = state.notebooks[notebook];
+          notebookProps.key = notebook;
+          notebookProps.active = state.active === notebook;
+          return SidebarElem(state, notebookProps);
+        };
+        const notebookList =
+          filteredBooks.length > 0 || isSearch
+            ? filteredBooks.map(bookMap)
+            : books.map(bookMap);
+        return h("aside", {}, [
+          h(
+            "a",
+            { class: "add", onclick: () => CreateWrapper(state) },
+            text("+")
+          ),
+          h("div", { class: "sidebar" }, [
+            books.length >= 10
+              ? h("div", { class: "search-wrap" }, [
+                  h("input", {
+                    class: "search",
+                    oninput: Search,
+                    placeholder: "Search",
+                    value: state.search,
+                  }),
+                ])
+              : null,
+            ...notebookList,
+          ]),
+        ]);
+      };
 
-            const CreateNotebook = (state, nbRecord) => {
-              // key should come from base
-              const newKey = nbRecord.key;
-              const newNotebooks = { ...state.notebooks };
-              if (newKey) {
-                newNotebooks[newKey] = nbRecord;
-              }
-              return [
-                {
-                  ...state,
-                  notebooks: {
-                    ...newNotebooks,
-                  },
-                  active: newKey,
-                },
-                [renderIcons],
-              ];
-            };
-
-            const CreateWrapper = (state, first = false) => {
-              return [
-                { ...state },
-                [renderIcons],
-                [createNbRecord, { state, CreateNotebook, first }],
-              ];
-            };
-
-            const DebouncedSave = (state) => {
-              return [
-                {
-                  ...state,
-                },
-                [renderIcons],
-                [updateNbRecord, { record: state.notebooks[state.active] }],
-              ];
-            };
-
-            const SaveCalculation = (state, event) => {
-              const newState = {
-                ...state,
-                notebooks: {
-                  ...state.notebooks,
-                  [state.active]: {
-                    ...state.notebooks[state.active],
-                    content: event.target.value,
-                    active: true,
-                  },
-                },
-              };
-              return [
-                newState,
-                window.hyperappFx.Debounce({ wait: 2000, action: update }),
-              ];
-            };
-            const ActivateNotebook = (state, val) => {
-              return [
-                {
-                  ...state,
-                  active: val,
-                },
-                [renderIcons],
-              ];
-            };
-
-
-            const ModifyName = (state, key = null) => {
-              return [
-                {
-                  ...state,
-                  active: key ? key : state.active,
-                  editingName: key ? key : null,
-                },
-                [renderIcons],
-              ];
-            };
-
-            const ChangeNotebookName = (state, event) => {
-              const payload = { value: event.target.value, key: event.target.id };
-              console.log(payload);
-              const newState = {
-                ...state,
-                notebooks: {
-                  ...state.notebooks,
-                  [payload.key]: {
-                    ...state.notebooks[payload.key],
-                    name: payload.value,
-                  },
-                },
-              };
-              return [
-                newState,
-                [renderIcons],
-                [updateNbRecord, { record: newState.notebooks[newState.active] }],
-              ];
-            };
-
-            const ImportNotebooks = (state, nbs = []) => {
-              const loadedNbs = {};
-              for (const book of nbs) {
-                loadedNbs[book.key] = book;
-              }
-              const nextState = {
-                ...state,
-                notebooks: loadedNbs,
-                active: nbs[0].key,
-              };
-              return [nextState, [renderIcons], [attachCalq, { state: nextState }]];
-            };
-
-            const Search = (state, event) => {
-              return [
-                {
-                  ...state,
-                  search: event.target.value,
-                },
-                [renderIcons],
-              ];
-            };
-
-            const ConditionalModify = (state, e) => {
-              const key = e.keyCode || e.which;
-              if (key === 13) {
-                return ModifyName(state);
-              }
-              return state;
-            };
-
-            // views
-
-            const SidebarElem = (state, props) => {
-              const isEditing = state.editingName === props.key;
-              console.log(state.notebooks[props.key].public);
-
-              return h("div", { class: "sidebar-elem" }, [
-                isEditing
-                  ? h("input", {
-                      id: props.key,
-                      oninput: ChangeNotebookName,
-                      onkeypress: [ConditionalModify, (event) => event],
-                      value: props.name,
-                    })
-                  : h(
-                      "a",
-                      {
-                        class: props.active ? "title-active" : "title",
-                        onclick: () => ActivateNotebook(state, props.key),
-                      },
-                      text(props.name)
-                    ),
-                h("div", { class: "sidebar-right" }, [
-                  h(
-                    "a",
-                    {
-                      class: "icon-wrap",
-                      onclick: isEditing
-                        ? () => ModifyName(state)
-                        : () => ModifyName(state, props.key),
-                    },
-                    [h("i", { "data-feather": "edit-2", class: "icon" })]
-                  ),
-                  h(
-                    "a",
-                    {
-                      class: "icon-wrap",
-                      onclick: () => DeleteNotebook(state, props.key),
-                    },
-                    [h("i", { "data-feather": "trash-2", class: "icon" })]
-                  ),
-                ]),
-              ]);
-            };
-
-            const Sidebar = (state) => {
-              let books = Object.keys(state.notebooks);
-              let filteredBooks = [];
-              const { search } = state;
-              const isSearch = search && search !== "";
-              if (isSearch) {
-                filteredBooks = books.filter(
-                  (each) =>
-                    state.notebooks[each].content.includes(search) ||
-                    each.includes(search)
-                );
-              }
-
-              const bookMap = (notebook) => {
-                let notebookProps = state.notebooks[notebook];
-                notebookProps.key = notebook;
-                notebookProps.active = state.active === notebook;
-                return SidebarElem(state, notebookProps);
-              };
-
-              return h("aside", {}, [
+      const Footer = (state) => {
+        let publicIcon = h("a", {}, text("loading"));
+        let publicUrl = ``;
+        if (state.notebooks[state.active]) {
+          publicUrl = state.notebooks[state.active].public
+            ? `${location.origin}/public/${state.active}`
+            : ``;
+          publicIcon = state.notebooks[state.active].public
+            ? h("div", { class: "flex" }, [
                 h(
                   "a",
-                  { class: "add", onclick: () => CreateWrapper(state) },
-                  text("+")
+                  {
+                    class: "publish",
+                    onclick: () => TogglePublic(state, state.active, false),
+                  },
+                  [
+                    h("i", {
+                      "data-feather": "share",
+                      class: "footer-icons blue",
+                    }),
+                    h("div", { class: "url-info" }, text("public")),
+                  ]
                 ),
-                h("div", { class: "sidebar" }, [
-                  books.length >= 10
-                    ? h("div", { class: "search-wrap" }, [
-                        h("input", {
-                          class: "search",
-                          oninput: Search,
-                          placeholder: "Search",
-                          value: state.search,
-                        }),
-                      ])
-                    : null,
-                  ...books.map(bookMap),
-                ]),
-              ]);
-            };
-
-            const Footer = (state) => {
-              let publicIcon = h("a", {}, text("loading"));
-              let publicUrl = ``;
-              if (state.notebooks[state.active]) {
-                publicUrl = state.notebooks[state.active].public
-                  ? `${location.origin}/public/${state.active}`
-                  : ``;
-                publicIcon = state.notebooks[state.active].public
-                  ? h("div", {class:"flex"}, [
-                  h(
-                      "a",
-                      {
-                        class: "publish",
-                        onclick: () => TogglePublic(state, state.active, false),
-                      },
-                      [
-
-                        h("i", {
-                          "data-feather": "share",
-                          class: "footer-icons blue",
-                        }),
-                        h("div", { class: "url-info" }, text("public")),
-                      ]
+                h(
+                  "a",
+                  {
+                    class: "embed",
+                    onclick: CopyEmbed(state, publicUrl),
+                  },
+                  [
+                    h("i", {
+                      "data-feather": "code",
+                      class: "footer-icons ",
+                    }),
+                    h(
+                      "div",
+                      { class: "url-info", id: "embed" },
+                      text(state.embed)
                     ),
-                    h("a",  {
-                      class: "embed",
-                      onclick: CopyEmbed(state, publicUrl),
-
-                    }, [
-
-                        h("i", {
-                          "data-feather": "code",
-                          class: "footer-icons ",
-                        }),
-                        h("div", { class: "url-info", id:"embed" }, text(state.embed)),
-                    ])
-                  ])
-                  : h("div", {class:"private"}, [
-                      h(
-                        "a",
-                        {
-                          class: "publish",
-                          onclick: () => TogglePublic(state, state.active, true),
-                        },
-                        [
-
-                          h("i", {
-                            "data-feather": "share",
-                            class: "footer-icons grey",
-                          }),
-                          h("div", { class: "url-info" }, text("private")),
-                        ]
-                      ),
-                    ]);
-              }
-              return h("footer", {}, [
-                publicIcon,
-                publicUrl != ""
-                  ? h("div", { class: "url-content" }, [
-                      h("div", { class: "url-info" }, text(`public url:`)),
-                      h(
-                        "a",
-                        { class: "url-tag", href: publicUrl },
-                        text(publicUrl)
-                      ),
-                    ])
-                  : h("a", { class: "url-tag" }, text("this notebook is private")),
+                  ]
+                ),
+              ])
+            : h("div", { class: "private" }, [
+                h(
+                  "a",
+                  {
+                    class: "publish",
+                    onclick: () => TogglePublic(state, state.active, true),
+                  },
+                  [
+                    h("i", {
+                      "data-feather": "share",
+                      class: "footer-icons grey",
+                    }),
+                    h("div", { class: "url-info" }, text("private")),
+                  ]
+                ),
               ]);
-            };
+        }
+        return h("footer", {}, [
+          publicIcon,
+          publicUrl != ""
+            ? h("div", { class: "url-content" }, [
+                h("div", { class: "url-info" }, text(`public url:`)),
+                h("a", { class: "url-tag", href: publicUrl }, text(publicUrl)),
+              ])
+            : h("a", { class: "url-tag" }, text("this notebook is private")),
+        ]);
+      };
 
-            const initState = {
-              search: "",
-              notebooks: {},
-              active: "",
-              editingName: null,
-              search: "",
-              embed: "embed"
-            };
+      const initState = {
+        search: "",
+        notebooks: {},
+        active: "",
+        editingName: null,
+        search: "",
+        embed: "embed",
+      };
 
-            app({
-              init: [
-                initState,
-                [renderIcons],
-                [loadNbRecords, { state: initState, ImportNotebooks, CreateWrapper }],
-              ],
-              view: (state) => {
-                const activeNb = state.notebooks[state.active];
-                const value = activeNb ? activeNb.content : "loading...";
-                return h("div", {}, [
-                  h("div", { class: "container" }, [
-                    h("div", { class: "main" }, [
-                      h("div", { class: "interface", id: "calq-wrap" }, [
-                        h("div", { class: "output", id: "output" }),
-                        h("textarea", {
-                          class: "input",
-                          id: "input",
-                          oninput: SaveCalculation,
-                          value,
-                        }),
-                      ]),
-                      Footer(state),
-                    ]),
+      app({
+        init: [
+          initState,
+          [renderIcons],
+          [loadNbRecords, { state: initState, ImportNotebooks, CreateWrapper }],
+        ],
+        view: (state) => {
+          const activeNb = state.notebooks[state.active];
+          const value = activeNb ? activeNb.content : "loading...";
+          return h("div", {}, [
+            h("div", { class: "container" }, [
+              h("div", { class: "main" }, [
+                h("div", { class: "interface", id: "calq-wrap" }, [
+                  h("div", { class: "output", id: "output" }),
+                  h("textarea", {
+                    class: "input",
+                    id: "input",
+                    oninput: SaveCalculation,
+                    value,
+                  }),
+                ]),
+                Footer(state),
+              ]),
 
-                    Sidebar(state),
-                  ]),
-                ]);
-              },
-              node: document.getElementById("app"),
-            });
+              Sidebar(state),
+            ]),
+          ]);
+        },
+        node: document.getElementById("app"),
+      });
     </script>
   </head>
 
