@@ -95,7 +95,7 @@
           console.log("Failed to create a new record.");
         }
         const resp = await req.json();
-        dispatch(options.CreateNotebook(options.state, resp || {}));
+        dispatch(options.CreateNotebook, resp || {});
         if (options.first) {
           // case of no notebooks, need to load Calque engine correcly
           attachCalq(dispatch, options);
@@ -134,9 +134,9 @@
         const data = await req.json();
         if (data.length === 0) {
           // no notebooks
-          dispatch(options.CreateWrapper(options.state, true));
+          dispatch(options.CreateWrapper, true);
         } else {
-          dispatch(options.ImportNotebooks(options.state, data || []));
+          dispatch(options.ImportNotebooks, data || []);
         }
         return;
       };
@@ -171,9 +171,11 @@
         ];
       };
 
-      const TogglePublic = (state, key, isPublic) => {
+      const TogglePublic = (state, options) => {
+        const {active, isPublic} = options;
+
         const newNotebooks = state.notebooks;
-        newNotebooks[key].public = isPublic;
+        newNotebooks[active].public = isPublic;
         return [
           {
             ...state,
@@ -182,7 +184,7 @@
             },
           },
           [renderIcons],
-          [updateNbRecord, { record: newNotebooks[key] }],
+          [updateNbRecord, { record: newNotebooks[active] }],
         ];
       };
 
@@ -302,7 +304,7 @@
 
       const ChangeNotebookName = (state, event) => {
         const payload = { value: event.target.value, key: event.target.id };
-        console.log(payload);
+
         const newState = {
           ...state,
           notebooks: {
@@ -355,7 +357,7 @@
 
       const SidebarElem = (state, props) => {
         const isEditing = state.editingName === props.key;
-        console.log(state.notebooks[props.key].public);
+
 
         return h("div", { class: "sidebar-elem" }, [
           isEditing
@@ -369,7 +371,7 @@
                 "a",
                 {
                   class: props.active ? "title-active" : "title",
-                  onclick: () => ActivateNotebook(state, props.key),
+                  onclick: [ActivateNotebook, props.key],
                 },
                 text(props.name)
               ),
@@ -379,8 +381,8 @@
               {
                 class: "icon-wrap",
                 onclick: isEditing
-                  ? () => ModifyName(state)
-                  : () => ModifyName(state, props.key),
+                  ? [ModifyName]
+                  : [ModifyName, props.key],
               },
               [h("i", { "data-feather": "edit-2", class: "icon" })]
             ),
@@ -388,7 +390,7 @@
               "a",
               {
                 class: "icon-wrap",
-                onclick: () => DeleteNotebook(state, props.key),
+                onclick: [DeleteNotebook, props.key],
               },
               [h("i", { "data-feather": "trash-2", class: "icon" })]
             ),
@@ -422,7 +424,7 @@
         return h("aside", {}, [
           h(
             "a",
-            { class: "add", onclick: () => CreateWrapper(state) },
+            { class: "add", onclick: CreateWrapper },
             text("+")
           ),
           h("div", { class: "sidebar" }, [
@@ -453,13 +455,13 @@
                 h(
                   "a",
                   {
-                    class: "publish",
-                    onclick: () => TogglePublic(state, state.active, false),
+                    class: "publish blue",
+                    onclick: [TogglePublic,{active: state.active, isPublic: false}],
                   },
                   [
                     h("i", {
                       "data-feather": "share",
-                      class: "footer-icons blue",
+                      class: "footer-icons",
                     }),
                     h("div", { class: "url-info" }, text("public")),
                   ]
@@ -468,7 +470,7 @@
                   "a",
                   {
                     class: "embed",
-                    onclick: CopyEmbed(state, publicUrl),
+                    onclick: [CopyEmbed, publicUrl],
                   },
                   [
                     h("i", {
@@ -487,13 +489,13 @@
                 h(
                   "a",
                   {
-                    class: "publish",
-                    onclick: () => TogglePublic(state, state.active, true),
+                    class: "publish grey",
+                    onclick: [TogglePublic, {active: state.active, isPublic: true}],
                   },
                   [
                     h("i", {
                       "data-feather": "share",
-                      class: "footer-icons grey",
+                      class: "footer-icons",
                     }),
                     h("div", { class: "url-info" }, text("private")),
                   ]

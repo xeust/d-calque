@@ -286,6 +286,9 @@ input:focus::-webkit-input-placeholder {
       height: 18px;
       width: 18px;
   }
+  .footer-icons:hover {
+    color: #98b9f9;
+  }
   .grey {
     color: #a7a7a7;
   }
@@ -294,7 +297,7 @@ input:focus::-webkit-input-placeholder {
       display: flex;
   }
   .embed {
-    color: #a7a7a7;
+      color: #a7a7a7;
       margin-left: 10px;
       display: flex;
   }
